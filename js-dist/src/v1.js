@@ -35,16 +35,16 @@ const util_2 = require("./util");
  * proxy the namespaced methods to the correct service client.
  */
 class ZedClient {
-    constructor(endpoint, creds) {
+    constructor(endpoint, creds, clientOptions) {
         this.close = () => {
             [this.acl, this.ns, this.watch].forEach((client) => client.close());
         };
-        this.acl = new permission_service_grpc_client_1.PermissionsServiceClient(endpoint, creds);
-        this.ns = new schema_service_grpc_client_1.SchemaServiceClient(endpoint, creds);
-        this.watch = new watch_service_grpc_client_1.WatchServiceClient(endpoint, creds);
+        this.acl = new permission_service_grpc_client_1.PermissionsServiceClient(endpoint, creds, clientOptions);
+        this.ns = new schema_service_grpc_client_1.SchemaServiceClient(endpoint, creds, clientOptions);
+        this.watch = new watch_service_grpc_client_1.WatchServiceClient(endpoint, creds, clientOptions);
     }
-    static create(endpoint, creds) {
-        return new Proxy({}, new ZedClient(endpoint, creds));
+    static create(endpoint, creds, clientOptions) {
+        return new Proxy({}, new ZedClient(endpoint, creds, clientOptions));
     }
     get(_target, name) {
         if (name === 'close') {
@@ -114,8 +114,8 @@ class ZedCombinedClient {
         this.client = client;
         this.promiseClient = promiseClient;
     }
-    static create(endpoint, creds) {
-        const client = ZedClient.create(endpoint, creds);
+    static create(endpoint, creds, clientOptions) {
+        const client = ZedClient.create(endpoint, creds, clientOptions);
         const promiseClient = ZedPromiseClient.create(client);
         return new Proxy({}, new ZedCombinedClient(client, promiseClient));
     }
@@ -133,9 +133,9 @@ class ZedCombinedClient {
  * @param security Security level for the connection.
  * @returns Client for calling Authzed APIs.
  */
-function NewClient(token, endpoint = util.authzedEndpoint, security = util_2.ClientSecurity.SECURE) {
+function NewClient(token, endpoint = util.authzedEndpoint, security = util_2.ClientSecurity.SECURE, clientOptions = {}) {
     const creds = util.createClientCreds(endpoint, token, security);
-    return NewClientWithChannelCredentials(endpoint, creds);
+    return NewClientWithChannelCredentials(endpoint, creds, clientOptions);
 }
 exports.NewClient = NewClient;
 /**
@@ -145,9 +145,9 @@ exports.NewClient = NewClient;
  * @param certificate Buffer read from certificate file.
  * @returns Client for calling Authzed APIs.
  */
-function NewClientWithCustomCert(token, endpoint = util.authzedEndpoint, certificate) {
+function NewClientWithCustomCert(token, endpoint = util.authzedEndpoint, certificate, clientOptions) {
     const creds = util.createClientCredsWithCustomCert(token, certificate);
-    return NewClientWithChannelCredentials(endpoint, creds);
+    return NewClientWithChannelCredentials(endpoint, creds, clientOptions);
 }
 exports.NewClientWithCustomCert = NewClientWithCustomCert;
 /**
@@ -164,8 +164,8 @@ exports.NewClientWithCustomCert = NewClientWithCustomCert;
  * @param creds ChannelCredentials used for grpc.
  * @returns Client for calling Authzed APIs.
  */
-function NewClientWithChannelCredentials(endpoint = util.authzedEndpoint, creds) {
-    return ZedCombinedClient.create(endpoint, creds);
+function NewClientWithChannelCredentials(endpoint = util.authzedEndpoint, creds, clientOptions) {
+    return ZedCombinedClient.create(endpoint, creds, clientOptions);
 }
 exports.NewClientWithChannelCredentials = NewClientWithChannelCredentials;
 __exportStar(require("./authzedapi/authzed/api/v1/core"), exports);
